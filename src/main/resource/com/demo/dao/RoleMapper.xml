@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.demo.dao.RoleMapper">
+	<cache></cache>
+	<resultMap id="roleMap" type="com.demo.bean.SysRole">
+		<result property="id" column="id"></result>
+		<result property="roleName" column="role_name"></result>
+		<result property="enabled" column="enabled"></result>
+		<result property="createBy" column="create_by"></result>
+		<result property="createTime" column="create_time"></result>
+	</resultMap>
+	<select id="selectRoleById" resultType="sysRole">
+		select * from sys_role where id = #{id}
+	</select>
+	
+	<update id="updateRoleById">
+		update sys_role
+			set role_name = #{roleName}
+		where id = #{id}
+	</update>
+</mapper>

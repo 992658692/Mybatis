@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<beans xmlns="http://www.springframework.org/schema/beans"  
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"  
+    xmlns:context="http://www.springframework.org/schema/context"  
+    xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"  
+    xmlns:mvc="http://www.springframework.org/schema/mvc"  
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd  
+        http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd  
+        http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd  
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd">
+    
+    <context:component-scan base-package ="com.demo" />
+    
+    <import resource="mybatis-config.xml"/>
+    
+    <bean id="dataSource" class="org.apache.ibatis.datasource.pooled.PooledDataSource">
+    	<property name="driver" value="com.mysql.jdbc.Driver"/>
+    	<!--配置url地址的时候需要开启useUnicode且将encoding编码定义为UTF-8 否则插入数据的时候会出现???乱码
+    		而&amp;是因为如果单纯以&符号做拼接的话没法识别，要以&amp;的形式转义一次 -->
+		<property name="url" value="jdbc:mysql://111.231.58.67:3306/test?useUnicode=true&amp;characterEncoding=utf-8"/>
+		<property name="username" value="root"/>
+		<property name="password" value="root"/>
+    </bean>
+    
+    <bean id="sqlSessionFactory" class ="org.mybatis.spring.SqlSessionFactoryBean">
+    	<!--configLocation用于配置mybatis的配置文件地址
+    	 	dataSource用于配置mybatis对应的数据源信息
+    	 	mapperLocations用于配置xml文件扫描的路径
+    	 	typeAliasesPackage对象的别名配置 -->
+		<property name="configLocation" value="classpath:mybatis-config.xml"></property>    	
+		<property name="dataSource" ref="dataSource"></property>
+		<!-- 该参数也可以放在mybatis-config中进行配置 所以该处省略即可
+		<property name="mapperLocations" value="classpath:com/demo/dao/*Mapper.xml" ></property>
+		<property name="typeAliasesPackage" value="com.demo.bean"></property>-->
+    </bean>
+    
+    <!--MapperScannerConfigurer 将接口注入到容器中
+    	如果项目中只有一个sqlSessionFactory数据源的话 系统就会默认去获取sqlSessionFacoty
+    	只有当项目中依赖多个数据源的时候才需要在property特别指出具体的sqlSessionFactory -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+    	<property name="basePackage" value="com.demo.dao"></property>
+    </bean>
+    
+</beans>  

@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.demo.dao.UserMapper">
+	<!-- 开启二级缓存 -->
+	<!--由于注解也可以设置缓存参数，二级缓存是依赖于namespace命名空间
+		所以不同同时配置缓存参数，如果想同时使用注解和xml中的缓存
+		注解：可以使用@CacheNamespaceRef(UserMapper.class)将命名空间指向接口先，然后再映射给xml
+		xml:可以使用<cache-ref namespace="com.demo.dao.UserMapper"> -->
+	<!--默认二级缓存效果
+		映射语句中所有的select语句将会被缓存
+		映射语句中所有的insert，update，delete	语句都会刷新缓存
+		缓存使用least Recently used(LRU 最近最少使用的)算法来回收缓存
+		如果没有定义flushInterval属性，缓存不会以任何时间顺序来刷新缓存
+		缓存被视为read/write（可读/可写）意味着对象的检索不是共享的，也就意味着线程安全 -->
+		
+	<!--flushInterval:毫秒级属性，定义的是缓存的刷新时间，默认不设置，即不刷新
+		size：存储集合或对象的引用个数，默认为1024
+		readOnly：是否可读，如果定为可读，那么并行下的修改会导致冲突，虽然性能高，但是默认还是为false
+		eviction:回收策略
+				 LRU：默认值 ，回收最长时间不用的引用
+				 FIFO：先进先出，按对象进入缓存区的顺序来移除
+				 SOFF：软引用，移除基于垃圾回收器状态和引用规则的对象
+				 WEAK:弱引用，更积极的移除基于垃圾回收器和弱引用规则的对象 -->
+	<cache-ref namespace="com.demo.dao.RoleMapper" />
+	<cache
+		eviction="FIFO"
+		flushInterval="600000"
+		size="512"
+		readOnly="false"/>
+	<!-- Mybatis 集成redis缓存
+	<cache type="org.mybatis.caches.redis.RedisCache"></cache>-->
+	<!-- resultMap 属性 -->
+	<!--resultMap标签用于配置java对象的属性和查询结果的对应关系，通过colum将查询结果对应到对象的属性property上
+	 	id： 必填且唯一 resultMap的命名标识
+	 	type:必填 用于查询结果所映射的java对象类型的全限定名
+	 	extends：选填  可以配置当前的resultMap继承自其他的resultMap属性值为父类的resultMap id
+	 	autoMapping：选填  值为ture false 用于是否启用非映射字段的自动映射功能-->
+	<!-- resultMap子标签 -->
+	<resultMap id="userMap" type="com.demo.bean.SysUser">
+		<!--id与result包含的属性相同，只是id代表的是主键的意思，它们都是通过setter注入的
+		 	column：数据库查询后的列名，或是列的别名(数据库结果列)
+		 	property:java对象属性，也可以xx.xx.userName的方式映射到一些复杂对象中的属性
+		 	javaType:java属性的类型，如果是javabean则mybatis 会自动判断类型，但如果是映射到hashMap上则需要明确的制定javaType
+		 	jdbcType:对应数据库类型，该类型是JDBC需要的而不是Mybatis需要的
+		 	typeHandle：使用该参数可以完全覆盖类型处理器，该值可以是完全限定名也可以是别名-->
+		<id property="id" column="id"></id>
+		<result property="userName" column="user_name"></result>
+		<result property="userPassword" column="user_password"></result>
+		<result property="userEmail" column="user_email"></result>
+		<result property="userInfo" column="user_info"></result>
+		<result property="headImg" column="head_img" jdbcType="BLOB"></result>
+		<result property="createTime" column="create_time" jdbcType="TIMESTAMP"></result>
+	</resultMap>
+	
+	<resultMap type="com.demo.bean.SysUser" id="userRoleMap" extends="userMap">
+		<!--association标签
+		 	property:为SysUser实例中SysRole类型对应的属性的名称 必填
+		 	javaType:属性对应的java类型的全限定名称
+		 	resultMap:可以直接使用现有的resultMap
+		 	columnPrefix：查询列的前缀，配置了该参数后，在子标签result中的column可以省略前缀（
+		 					在sql中使用到列名role_role_name 对应的column中的role_name）-->
+		<association property="role"  resultMap="com.demo.dao.RoleMapper.roleMap">
+		</association>
+		
+		<!--association嵌套查询的另一种方式
+			column:该参数为select属性映射的sql语句中需要的参数集id为子sql中的条件 role_id为主
+					查询后得到的结果列，如果是多个参数则以逗号隔开
+			select: 子查询映射语句，当主查询返回的结果后 继而执行子查询将结果映射到对应java属性中
+			fetchType:lazy 延迟加载，只有当getRole方法调用的时候才会去执行子查询否则只是单纯的执行主查询
+					  eager 积极加载，恒执行子查询。该属性还受mybatis-config set中的aggressivelazyloading
+					  参数的影响
+		<association property="role" column="{id=role_id}" 
+					select="com.demo.dao.RoleMapper.selectRoleById">
+		
+		</association>-->
+	</resultMap>
+	
+	<select id="selectById" resultMap="userMap">
+		select * from sys_user where id = #{id}
+	</select>
+	
+	<select id="selectAll" resultType="sysUser">
+		select id, user_name, user_password, user_email, user_info, head_img, create_time
+		from sys_user
+		where 1 = 1
+		<!--if标签中的必填属性test，它的值是一个符合OGNL标准的判断表达式，
+			结果为true或者false(当然也可以以所用的非0都是true，所有的0都是false来作为判断依据，但不方便表达！)
+			表达始终的and==&& or==|| -->
+		<!--if标签有个缺点 就是where 1=1 这个字句必须写上，否则只包含where 关键字的话
+			那么当2个if条件都不满足时，那么查询的语句就会变成以where为结尾，这样的sql是不规范的
+			也无法执行，所以使用if标签的时候必须带上子句where 1=1。并且if子句中的and 或者or
+			关键字也是必须添加的。 -->
+		<if test = "userName != null and userName != ''">
+			<bind name = "userNameLike" value = "'%' + userName + '%'"></bind>
+			and user_name like #{userNameLike}
+			<!-- and user_name like concat('%', #{userName}, '%')-->
+		</if>
+		<if test = "userEamil != null and userEmail != ''">
+			and user_email = #{userEmail}
+		</if>
+		
+		<!--choose标签其实就相当于if else
+		 	when 条件成立则执行when中的条件查询
+		 	否则执行otherwise 中的条件
+		<choose>
+			<when test = "id != null">
+			 and id = #{id}
+			</when>
+			<otherwise>
+			and 1= 2
+			</otherwise>
+		</choose>-->
+		
+		
+		<!--where的包含了if的功能 但优化了if的缺点
+		  	如果where标签内有内容返回，则自动在子句中添加where关键字
+		  	并且去掉where后面的and 或 or 
+		<where>
+			<if test = "userName != null and userName != ''">
+			and user_name like concat('%', #{userName}, '%')
+		</where>-->
+		<!--trim可以用来代替where 或者set标签的功能
+			当使用where功能是 suffixOverrides中的and 和 or 后面必须
+			要带上空格。
+			prefix：该属性是给sql语句增加指定的前缀，set就添加set  where 则添加where
+			prefixOverrides：该属性则是用来去除指定的内容的，如果定义了该值则sql会把匹配到的前缀去除
+			suffix：添加制定后缀
+			subffixOverrides:去除指定后缀
+		<trim prefix="SET(WHERE)" suffixOverrides=",(AND || OR )">
+			.....
+		</trim> -->
+	</select>
+	
+	<select id="selectByIdList" resultType="sysUser">
+		select * from sys_user
+		where 1=1
+		<!--foreach循环遍历标签
+		 	item：list 或者 array 集合或者数组便利后的每个参数，该属性的命名可以子定义 只要保证sql中的
+		 		  #{xx}与之一致即可
+		 	index:非必填，为遍历的下标，相当于for循环中的i 根据数组长度而定，有时可以根据该参数 作为排序依据
+		 	open:循环内容的开头字符串
+		 	close:循环内容的结尾字符串
+		 	separator:每次循环的分隔符
+		 	collection:如果是list集合则为list， 数组则为array，map的话则填map中list对应的key名
+		 				如果该接口方法只有一个参数那么用list 或者array数组即可，但是涉及到多个参数的
+		 				时候将参数放入map中，那么就需要collection读取具体的key了。
+		 				当单独使用map类型的时候collection参数的值必须是_parameter
+		 				然后${ixx}为key #{id}为value-->
+		<foreach item="id" index="ixx" open=" and" collection="_parameter">
+			${ixx} = #{id}
+		</foreach>
+		
+		<!--可以用于循环插入
+			而且Mybatis从3.3.1版本开始就可以批量返回insert的主键了 
+		<foreach collection = "list" separator="," item = "user">
+			(
+				#{user.userName},#{user.userPassword}
+			)
+		</foreach>-->
+	</select>
+	
+	<!--在SysRole中加入SysUser类，使得结果参数得以映射到对应的字段中
+		还可以在resultMap中 result标签内以property=user.userName
+		column=user_name的方式实现多表参数映射。
+		当然也可以使用resultMap自带的extends继承属性继承  -->
+	<select id="selectRolesByUserId" resultMap="userRoleMap">
+		select 
+			r.id,
+			r.role_name ,
+			r.enabled,
+			r.create_by,
+			r.create_time,
+			u.user_name ,
+			u.user_email  
+		from sys_user u
+		inner join sys_user_role ur on u.id = ur.user_id
+		inner join sys_role r on ur.role_id = r.id
+		where u.id = #{id}
+	</select>
+	
+	<!-- insert 属性 -->
+	<!--flushCache:默认为true，任何时候只要insert语句被调用，都会清空一级缓存和二级缓存
+	 	timeout:设置等待响应的秒数，设置在异常之前，如果设置在异常之后，那么抛出异常 就不需要超不超时了
+	 	statementType:Statement(每次执行sql时数据库都要执行sql编译，适用于仅执行一次的查询)
+	 				  PreparedStatement(编译一次就能够执行多次，效率比较高，安全性还好 可以防止sql注入，支持批量操作。)系统默认属性
+	 				  CallableStatement(支持带参数的sql，支持存储过程，提供了对IN输入\OUT输出的支持)
+	 	useGeneratedKeys:默认为false，如果设置为true,Mybatis会取出由数据库内部生成的主键
+	 	keyProperty:Mybatis获取主键后将要赋值的属性名，如果希望得到多个列可以以逗号隔开
+	 	-->
+	<!--关于数据库的时间类型 DATE, TIME, TIMESTAMP
+		DATE:年月日
+		TIME:时分秒（会执行失败因为没有年月日部分）
+		TIMESTAMP:年月日时分秒-->
+	<!-- 两种方式可以获得主键的值 -->
+	<!-- <insert id="insert" useGeneratedKeys="true" keyProperty="id"> -->
+	<insert id="insert">
+		insert into sys_user(
+			user_name, user_password, user_email,
+			user_info, head_img, create_time)
+		values(
+			#{userName}, #{userPassword}, #{userEmail},
+			#{userInfo}, #{headImg, jdbcType=BLOB},
+			#{createTime, jdbcType=TIMESTAMP})
+		<!-- 可以用这种插入完后查询的方式获得主键 其他不变 主要是多了个order参数 为after 因为主键是在插入之后产生的
+			 而至于selectKey元素的存放位置并不会影响什么放在头跟尾部都没有差别 -->
+		<selectKey keyProperty="id" resultType="Long" keyColumn="id" order="AFTER">
+			SELECT LAST_INSERT_ID()
+		</selectKey>
+	</insert>
+	
+	<update id="update">
+		update sys_user 
+		set user_name = #{userName},
+			user_password = #{userPassword},
+			user_email = #{userEmail},
+			user_info = #{userInfo},
+			head_img = #{headImg},
+			
+		<!-- set标签检测到返回的字符串末尾如果带有逗号，则会取出最后一个逗号
+		<set>
+			<if test = "createTime != null">
+				create_time = #{createTime},
+			</if>
+		</set> -->
+		where id = #{id}
+	</update>
+	
+	<delete id="deleteById">
+		delete from sys_user where id = #{id}
+	</delete>
+</mapper>

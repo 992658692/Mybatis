@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+	<!-- 参数设置 -->
+	<settings>
+		<!-- 通过设置该参数可以将数据库cc_xx带下划线的参数默认映射到java属性中ccXx字段上 默认该属性为false -->
+		<setting name="mapUnderscoreToCamelCase" value="true"/>
+		<!-- 全局设置延迟加载 默认为false 如果不设置或者设置为false则全都正常加载-->
+		<setting name="aggressiveLazyLoading" value="true"></setting>
+		<!--全局的二级缓存的开关，默认就是开着的true。由于二级缓存是和命名空间绑定在一起的，
+			想要使用这个二级缓存功能只需要开启后在每个xml文件的根节点mapper标签内加入<cache/>即可 -->
+		<setting name="cacheEnabled" value="true"/>
+	</settings>
+
+	<!-- 别名定义 -->
+	<typeAliases>
+		<!-- typeAlias 将type实体类重命名为country -->
+		<!-- 定义别名后在mapper.xml文件中直接使用别名即可(resultType='country')
+			不需要再写全称了！ 
+		<typeAlias alias="country" type="org.web.blog.bean.Country"></typeAlias>-->
+		
+		<!-- package可以取代typeAlias 
+			它是通过扫描路径下所用的bean 然后通过默认规则 将bean的首字母小写作为默认别名
+			也可以在bean上通过@Alias("xxx")来手动创建别名 -->
+		<package name ="com.demo.bean"></package>
+	</typeAliases>
+	
+	<!-- mysql 配置节点 可以配置多个连接节点 
+		具体使用哪个节点的配置可以由default参数来定义，default与子节点的id相关联-->
+	<environments default="xs">
+		<!-- 正式环境节点配置 -->
+		<environment id="xs">
+		<!--JDBC MANAGED
+			JDBC:这个配置就是直接使用了 JDBC 的提交和回滚设置，它依赖于从数据源得到的连接来管理事务作用域。
+			MANAGED:这个配置几乎没做什么。它从来不提交或回滚一个连接，而是让容器来管理事务的整个生命周期（比如 JEE 应用服务器的上下文）.
+					 默认情况下它会关闭连接，然而一些容器并不希望这样，因此需要将 closeConnection 属性设置为 false 来阻止它默认的关闭行为。 -->
+		<transactionManager type="JDBC"/>
+			<!-- UNPOOLED POOLED JNDI
+				UNPOOLED：Mybatis会为每一个数据库操作创建一个新的连接，并关闭它，该方式
+						 适用于只有小规模数量并发用户的简单应用程序上
+				POOLED：Mybatis会创建一个数据库连接池，连接池中的一个连接将会被用作数据库操作
+						一旦数据库操作完成，就会将次连接返回给连接池
+				JNDI：Mybatis从在应用服务器向配置好的JNDI数据源dataSource获取数据库连接
+					 生产环境优先考虑 -->
+			<dataSource type="UNPOOLED">
+				<property name="driver" value ="com.mysql.jdbc.Driver"/>
+				<property name="url" value="jdbc:mysql://localhost:3306/test?useUnicode=true&amp;characterEncoding=utf-8"/>
+				<property name="username" value="root"/>
+				<property name="password" value="root"/>
+			</dataSource>
+		</environment>
+		<!-- 测试环境节点配置 
+		<environment id="xss">
+			<dataSource>
+			</dataSource>
+		</environment> -->
+	</environments>
+
+ 	<mappers>
+ 		<!--直接映射到相应的mapper文件
+		<mapper resource="com/demo/dao/UserMapper.xml"/>-->
+		<!--扫描路径下java 接口文件，然后通过文件路径的全限定名作为路径去找对应的xml文件 xx.xx.java 对应xx.xx.xml
+			如果xml文件与java文件的路径不一致 则映射失败，这个时候如果想单纯使用java文件 可以在接口方法上使用注解的方式来实现sql即可-->
+		<package name="com.demo.dao"/>
+	</mappers>
+	
+	<!-- FIXME待学习 Mybatis的拦截器配置
+	<plugins>
+		<plugin interceptor="xx.xx.xxInterceptor">
+			<property name="" value=""/>
+			<property name="" value=""/>
+		</plugin>
+	</plugins> -->
+	
+</configuration>
